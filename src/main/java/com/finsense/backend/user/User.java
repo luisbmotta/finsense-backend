@@ -72,6 +72,10 @@ public class User {
         return monthlyIncome;
     }
 
+    public void setMonthlyIncome(BigDecimal monthlyIncome) {
+        this.monthlyIncome = monthlyIncome;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

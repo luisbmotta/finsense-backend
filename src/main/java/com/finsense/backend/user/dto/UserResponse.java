@@ -1,4 +1,4 @@
-package com.finsense.backend.auth.dto;
+package com.finsense.backend.user.dto;
 
 import com.finsense.backend.user.User;
 
