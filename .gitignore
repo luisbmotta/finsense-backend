@@ -1,0 +1,28 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### IDE ###
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.classpath
+.project
+.settings/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Env ###
+.env
+
+### Runtime artifacts ###
+*.log
+*.pid
+
+### Claude Code local settings ###
+.claude/settings.local.json
