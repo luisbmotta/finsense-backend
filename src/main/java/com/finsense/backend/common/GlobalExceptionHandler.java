@@ -1,8 +1,10 @@
 package com.finsense.backend.common;
 
+import com.finsense.backend.ai.GroqServiceException;
 import com.finsense.backend.common.exception.EmailAlreadyInUseException;
 import com.finsense.backend.common.exception.InvalidCredentialsException;
 import com.finsense.backend.common.exception.ResourceNotFoundException;
+import com.finsense.backend.common.exception.TransactionLinkedToGoalException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -53,5 +55,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiError.of(403, "Forbidden", "Acesso negado"));
+    }
+
+    @ExceptionHandler(TransactionLinkedToGoalException.class)
+    public ResponseEntity<ApiError> handleTransactionLinkedToGoal(TransactionLinkedToGoalException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiError.of(409, "Conflict", ex.getMessage()));
+    }
+
+    @ExceptionHandler(GroqServiceException.class)
+    public ResponseEntity<ApiError> handleGroqServiceException(GroqServiceException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ApiError.of(502, "Bad Gateway", "Servico de IA indisponivel no momento"));
     }
 }

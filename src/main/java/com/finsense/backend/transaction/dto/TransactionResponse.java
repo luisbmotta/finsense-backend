@@ -12,7 +12,8 @@ public record TransactionResponse(
         String description,
         BigDecimal amount,
         Category category,
-        LocalDate date
+        LocalDate date,
+        UUID goalId
 ) {
     public static TransactionResponse from(Transaction transaction) {
         return new TransactionResponse(
@@ -20,7 +21,8 @@ public record TransactionResponse(
                 transaction.getDescription(),
                 transaction.getAmount(),
                 transaction.getCategory(),
-                transaction.getDate()
+                transaction.getDate(),
+                transaction.getGoal() != null ? transaction.getGoal().getId() : null
         );
     }
 }
