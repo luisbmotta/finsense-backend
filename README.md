@@ -2,9 +2,8 @@
 
 Backend do **FinSense** — plataforma de inteligência financeira para jovens de 18 a 30 anos, em parceria com a **Claro**.
 MVP de trabalho acadêmico (FIAP). Este repositório substitui os dados mockados do [finsense-frontend](../finsense-frontend)
-por uma API real: autenticação, transações, metas e resumo financeiro.
-
-> IA/Insights fica para uma etapa futura — fora de escopo aqui.
+por uma API real: autenticação, transações, metas, resumo financeiro e recursos de IA (parse de transação por texto
+livre e insights financeiros).
 
 ## Stack
 
@@ -24,12 +23,14 @@ src/main/java/com/finsense/backend/
 ├── transaction/   # entidade Transaction + Category (alimentacao|transporte|lazer|saude|outros)
 ├── goal/          # entidade Goal (metas financeiras)
 ├── summary/        # saldo, gastos totais e por categoria
+├── ai/             # GroqService (parse de transação por texto livre, insights financeiros)
+├── insights/        # endpoint GET /api/insights
 ├── security/       # JwtService, filtro JWT, principal autenticado
 ├── config/          # SecurityConfig (CORS, filtro, regras de acesso)
 └── common/          # tratamento global de erros
 src/main/resources/
 ├── application.yml
-└── db/migration/    # V1__..., V2__..., V3__... (Flyway)
+└── db/migration/    # V1__..., V2__..., V3__..., V4__... (Flyway)
 ```
 
 ## Pré-requisitos
@@ -58,7 +59,7 @@ Postgres local já existente.
 .\mvnw.cmd spring-boot:run
 ```
 
-Na primeira subida, o Flyway roda as migrations (`V1`, `V2`, `V3`) automaticamente e cria as tabelas `users`,
+Na primeira subida, o Flyway roda as migrations (`V1` a `V4`) automaticamente e cria as tabelas `users`,
 `transactions` e `goals`. A API sobe em `http://localhost:8080`.
 
 ### 3. Rodar os testes / build
@@ -83,6 +84,7 @@ Na primeira subida, o Flyway roda as migrations (`V1`, `V2`, `V3`) automaticamen
 | `JWT_EXPIRATION_MS` | `86400000` (24h) | Validade do token |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` | Origem liberada para o Angular local |
 | `SERVER_PORT` | `8080` | |
+| `GROQ_API_KEY` | *(vazio)* | Chave da API da Groq. Sem ela, `/api/transactions/parse` e `/api/insights` respondem `502`. Nunca commitar essa chave. |
 
 ## Endpoints
 
@@ -94,14 +96,33 @@ Todos os endpoints exceto `/api/auth/**` exigem `Authorization: Bearer <token>`.
 | POST | `/api/auth/login` | Login |
 | GET | `/api/transactions` | Lista as transações do usuário autenticado |
 | POST | `/api/transactions` | Cria uma transação |
-| DELETE | `/api/transactions/{id}` | Remove uma transação (204 sem corpo; 404 se não existir ou não for do usuário autenticado) |
+| POST | `/api/transactions/parse` | Interpreta um texto livre (ex: "gastei 45 reais no almoço") via IA e retorna valor/categoria/descrição sugeridos — não salva nada |
+| DELETE | `/api/transactions/{id}` | Remove uma transação (204 sem corpo; 404 se não existir ou não for do usuário autenticado; 409 se for um depósito vinculado a uma meta) |
 | GET | `/api/goals` | Lista as metas do usuário autenticado |
 | POST | `/api/goals` | Cria uma meta |
-| POST | `/api/goals/{id}/deposit` | Deposita um valor em uma meta existente |
-| DELETE | `/api/goals/{id}` | Remove uma meta (204 sem corpo; 404 se não existir ou não for do usuário autenticado) |
-| GET | `/api/summary` | Saldo, total de gastos e gastos por categoria |
+| POST | `/api/goals/{id}/deposit` | Deposita um valor em uma meta existente (também registra uma transação vinculada no extrato) |
+| DELETE | `/api/goals/{id}` | Remove uma meta e, em cascata, sua(s) transação(ões) de depósito (204 sem corpo; 404 se não existir ou não for do usuário autenticado) |
+| GET | `/api/summary` | Saldo, total de gastos e gastos por categoria (já descontando valores guardados em metas) |
+| GET | `/api/insights` | Gera de 2 a 4 dicas/alertas financeiros curtos via IA, a partir das transações e da renda mensal do usuário |
 
 Categorias válidas (iguais ao frontend, não mude): `alimentacao`, `transporte`, `lazer`, `saude`, `outros`.
+
+## Recursos de IA e metas
+
+- **Parse de transação por texto livre**: `POST /api/transactions/parse` manda um texto tipo "gastei 45 reais no
+  almoço hoje" pra IA (Groq) e recebe de volta valor, categoria e descrição sugeridos. Não salva nada — a decisão de
+  criar a transação (via `POST /api/transactions`) fica com quem chama a API.
+- **Insights financeiros por IA**: `GET /api/insights` resume as transações recentes e a renda mensal do usuário e
+  pede pra IA gerar de 2 a 4 dicas/alertas curtos em português (ex: dica de investimento, alerta de gasto alto numa
+  categoria).
+- **Metas com desconto automático no saldo**: `GET /api/summary` já desconta do saldo disponível o valor guardado em
+  todas as metas do usuário (`Goal.currentAmount`), não só as transações. Depositar numa meta (`POST
+  /api/goals/{id}/deposit`) também cria uma transação vinculada no extrato (visível em `GET /api/transactions`), sem
+  contar o valor duas vezes no saldo.
+- **Exclusão de transações e metas**: `DELETE /api/transactions/{id}` e `DELETE /api/goals/{id}` removem o respectivo
+  registro (com verificação de que pertence ao usuário autenticado). Deletar uma meta remove em cascata as
+  transações de depósito vinculadas a ela; excluir uma dessas transações diretamente pelo extrato não é permitido
+  (409) — é preciso excluir a meta.
 
 ## Testando com curl
 
