@@ -1,6 +1,7 @@
 package com.finsense.backend.transaction;
 
 import com.finsense.backend.common.exception.ResourceNotFoundException;
+import com.finsense.backend.common.exception.TransactionLinkedToGoalException;
 import com.finsense.backend.transaction.dto.CreateTransactionRequest;
 import com.finsense.backend.transaction.dto.TransactionResponse;
 import com.finsense.backend.user.User;
@@ -44,6 +45,11 @@ public class TransactionService {
     public void delete(UUID userId, UUID transactionId) {
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transacao nao encontrada: " + transactionId));
+
+        if (transaction.getGoal() != null) {
+            throw new TransactionLinkedToGoalException(
+                    "Transacao vinculada a uma meta; exclua a meta para remove-la");
+        }
 
         transactionRepository.delete(transaction);
     }

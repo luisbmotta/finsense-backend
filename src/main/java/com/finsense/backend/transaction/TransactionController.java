@@ -1,7 +1,11 @@
 package com.finsense.backend.transaction;
 
+import com.finsense.backend.ai.GroqService;
+import com.finsense.backend.ai.dto.TransacaoExtraida;
 import com.finsense.backend.security.UserPrincipal;
 import com.finsense.backend.transaction.dto.CreateTransactionRequest;
+import com.finsense.backend.transaction.dto.ParseTransactionRequest;
+import com.finsense.backend.transaction.dto.ParsedTransactionResponse;
 import com.finsense.backend.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,9 +21,11 @@ import java.util.UUID;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final GroqService groqService;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, GroqService groqService) {
         this.transactionService = transactionService;
+        this.groqService = groqService;
     }
 
     @GetMapping
@@ -34,6 +40,12 @@ public class TransactionController {
     ) {
         TransactionResponse response = transactionService.create(principal.getUser(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/parse")
+    public ResponseEntity<ParsedTransactionResponse> parse(@Valid @RequestBody ParseTransactionRequest request) {
+        TransacaoExtraida extraida = groqService.parseTransacaoTexto(request.text());
+        return ResponseEntity.ok(ParsedTransactionResponse.from(extraida));
     }
 
     @DeleteMapping("/{id}")

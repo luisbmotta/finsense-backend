@@ -1,5 +1,6 @@
 package com.finsense.backend.transaction;
 
+import com.finsense.backend.goal.Goal;
 import com.finsense.backend.user.User;
 import jakarta.persistence.*;
 
@@ -35,15 +36,24 @@ public class Transaction {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "goal_id", nullable = true)
+    private Goal goal;
+
     protected Transaction() {
     }
 
     public Transaction(User user, String description, BigDecimal amount, Category category, LocalDate date) {
+        this(user, description, amount, category, date, null);
+    }
+
+    public Transaction(User user, String description, BigDecimal amount, Category category, LocalDate date, Goal goal) {
         this.user = user;
         this.description = description;
         this.amount = amount;
         this.category = category;
         this.date = date;
+        this.goal = goal;
     }
 
     @PrePersist
@@ -82,5 +92,9 @@ public class Transaction {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Goal getGoal() {
+        return goal;
     }
 }

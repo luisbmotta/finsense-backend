@@ -4,10 +4,14 @@ import com.finsense.backend.common.exception.ResourceNotFoundException;
 import com.finsense.backend.goal.dto.CreateGoalRequest;
 import com.finsense.backend.goal.dto.DepositRequest;
 import com.finsense.backend.goal.dto.GoalResponse;
+import com.finsense.backend.transaction.Category;
+import com.finsense.backend.transaction.Transaction;
+import com.finsense.backend.transaction.TransactionRepository;
 import com.finsense.backend.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,9 +19,11 @@ import java.util.UUID;
 public class GoalService {
 
     private final GoalRepository goalRepository;
+    private final TransactionRepository transactionRepository;
 
-    public GoalService(GoalRepository goalRepository) {
+    public GoalService(GoalRepository goalRepository, TransactionRepository transactionRepository) {
         this.goalRepository = goalRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -49,6 +55,17 @@ public class GoalService {
 
         goal.setCurrentAmount(goal.getCurrentAmount().add(request.amount()));
         goal = goalRepository.save(goal);
+
+        Transaction depositTransaction = new Transaction(
+                goal.getUser(),
+                "Deposito na meta: " + goal.getName(),
+                request.amount(),
+                Category.OUTROS,
+                LocalDate.now(),
+                goal
+        );
+        transactionRepository.save(depositTransaction);
+
         return GoalResponse.from(goal);
     }
 
