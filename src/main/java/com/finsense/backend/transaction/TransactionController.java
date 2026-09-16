@@ -42,6 +42,14 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<TransactionResponse> getById(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok(transactionService.getById(principal.getId(), id));
+    }
+
     @PostMapping("/parse")
     public ResponseEntity<ParsedTransactionResponse> parse(@Valid @RequestBody ParseTransactionRequest request) {
         TransacaoExtraida extraida = groqService.parseTransacaoTexto(request.text());

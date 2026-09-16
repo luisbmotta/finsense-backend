@@ -41,6 +41,14 @@ public class TransactionService {
         return TransactionResponse.from(transaction);
     }
 
+    @Transactional(readOnly = true)
+    public TransactionResponse getById(UUID userId, UUID transactionId) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transacao nao encontrada: " + transactionId));
+
+        return TransactionResponse.from(transaction);
+    }
+
     @Transactional
     public void delete(UUID userId, UUID transactionId) {
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
