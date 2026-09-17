@@ -43,7 +43,7 @@ public class SummaryService {
         List<Transaction> transactions = transactionRepository.findByUserIdOrderByDateDescCreatedAtDesc(userId);
 
         // Depositos em metas ja sao contabilizados via totalSavedInGoals (Goal.currentAmount);
-        // exclui-los aqui evita descontar o mesmo valor duas vezes do saldo.
+        // exclui-los do total/saldo evita descontar o mesmo valor duas vezes.
         List<Transaction> expenseTransactions = transactions.stream()
                 .filter(t -> t.getGoal() == null)
                 .toList();
@@ -52,7 +52,10 @@ public class SummaryService {
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Map<String, BigDecimal> expensesByCategory = expenseTransactions.stream()
+        // Diferente do total/saldo, o breakdown por categoria alimenta os graficos
+        // (dashboard e insights), entao inclui tambem os depositos em metas para
+        // que eles fiquem visiveis ali.
+        Map<String, BigDecimal> expensesByCategory = transactions.stream()
                 .collect(Collectors.groupingBy(
                         t -> t.getCategory().getValue(),
                         LinkedHashMap::new,
